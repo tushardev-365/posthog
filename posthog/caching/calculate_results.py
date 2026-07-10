@@ -11,7 +11,10 @@ from posthog.hogql.constants import LimitContext
 from posthog.api.services.query import ExecutionMode, process_query_dict
 from posthog.clickhouse.query_tagging import get_team_query_tags, tag_queries
 from posthog.event_usage import AnalyticsProps
-from posthog.hogql_queries.apply_dashboard_filters import merge_dashboard_and_tile_filters
+from posthog.hogql_queries.apply_dashboard_filters import (
+    merge_dashboard_and_tile_filters,
+    remove_query_properties_overridden_by_tile,
+)
 from posthog.hogql_queries.query_runner import get_query_runner_or_none
 from posthog.models import Team, User
 from posthog.schema_migrations.upgrade_manager import upgrade_query
@@ -77,13 +80,18 @@ def calculate_for_query_based_insight(
         variables_override if variables_override is not None else dashboard.variables if dashboard is not None else None
     )
 
-    # Tile filters merge on top of dashboard filters — tile wins per field, properties AND-combine.
+    # Tile filters merge on top of dashboard filters — tile wins per field, properties merge per key.
     if tile_filters_override:
         dashboard_filters_json = merge_dashboard_and_tile_filters(dashboard_filters_json, tile_filters_override)
 
     query_json: dict | None = query_override if query_override is not None else insight.query
     if query_json is None:
         raise ValueError("Insight has no query and no query_override was provided")
+
+    # A tile property filter takes precedence over the insight's own filter on the same key — drop the
+    # insight's so the merged tile filter replaces it rather than AND-ing (which could zero out results).
+    if tile_filters_override:
+        query_json = remove_query_properties_overridden_by_tile(query_json, tile_filters_override)
 
     response = process_response = process_query_dict(
         team,
