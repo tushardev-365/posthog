@@ -37882,6 +37882,7 @@ export namespace Schemas {
     }
 
     /**
+     * * `default` - Default
      * * `onboarding` - Onboarding
      * * `product_intent` - Product Intent
      * * `used_by_colleagues` - Used by Colleagues
@@ -37895,6 +37896,7 @@ export namespace Schemas {
 
 
     export const UserProductListReasonEnum = {
+      Default: 'default',
       Onboarding: 'onboarding',
       ProductIntent: 'product_intent',
       UsedByColleagues: 'used_by_colleagues',
@@ -64187,6 +64189,17 @@ export namespace Schemas {
     offset?: number;
     };
 
+    export type EnvironmentsUserProductListSeedCreateParams = {
+    /**
+     * Number of results to return per page.
+     */
+    limit?: number;
+    /**
+     * The initial index from which to return the results.
+     */
+    offset?: number;
+    };
+
     export type EnvironmentsVisionObservationsListParams = {
     /**
      * Number of results to return per page.
@@ -72484,6 +72497,17 @@ export namespace Schemas {
     };
 
     export type UserProductListListParams = {
+    /**
+     * Number of results to return per page.
+     */
+    limit?: number;
+    /**
+     * The initial index from which to return the results.
+     */
+    offset?: number;
+    };
+
+    export type UserProductListSeedCreateParams = {
     /**
      * Number of results to return per page.
      */
