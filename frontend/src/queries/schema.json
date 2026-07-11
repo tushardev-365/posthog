@@ -23250,7 +23250,12 @@
                 "Vultr",
                 "Windmill",
                 "Zep",
-                "Hex"
+                "Hex",
+                "Sumsub",
+                "GoogleChat",
+                "Kickscale",
+                "Zellify",
+                "RudderStack"
             ],
             "type": "string"
         },

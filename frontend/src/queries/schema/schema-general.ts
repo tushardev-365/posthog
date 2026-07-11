@@ -7491,6 +7491,11 @@ export const externalDataSources = [
     'Windmill',
     'Zep',
     'Hex',
+    'Sumsub',
+    'GoogleChat',
+    'Kickscale',
+    'Zellify',
+    'RudderStack',
 ] as const
 
 export type ExternalDataSourceType = (typeof externalDataSources)[number]

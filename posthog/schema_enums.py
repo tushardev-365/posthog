@@ -1937,6 +1937,11 @@ class ExternalDataSourceType(StrEnum):
     WINDMILL = "Windmill"
     ZEP = "Zep"
     HEX = "Hex"
+    SUMSUB = "Sumsub"
+    GOOGLE_CHAT = "GoogleChat"
+    KICKSCALE = "Kickscale"
+    ZELLIFY = "Zellify"
+    RUDDER_STACK = "RudderStack"
 
 
 class ExternalQueryErrorCode(StrEnum):
