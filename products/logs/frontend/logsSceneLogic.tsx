@@ -40,8 +40,12 @@ export const getLogsSqlEditorTabId = (id: string): string => `logs-sql-editor-${
 // A static id would persist across projects in the same browser, leaking one project's pinned log payloads into another.
 export const LOGS_SCENE_VIEWER_ID = `logs-scene-${window.POSTHOG_APP_CONTEXT?.current_team?.id ?? 'unknown'}`
 
-export type LogsSceneActiveTab = 'viewer' | 'services' | 'alerts' | 'sql' | 'configuration'
-const VALID_ACTIVE_TABS: LogsSceneActiveTab[] = ['viewer', 'services', 'alerts', 'sql', 'configuration']
+// The Archive tab is a second, independent viewer instance (its own filters/config/state) that
+// queries the logs archive. A distinct id keeps its persisted state from colliding with the hot viewer.
+export const LOGS_SCENE_ARCHIVE_VIEWER_ID = `logs-scene-archive-${window.POSTHOG_APP_CONTEXT?.current_team?.id ?? 'unknown'}`
+
+export type LogsSceneActiveTab = 'viewer' | 'archive' | 'services' | 'alerts' | 'sql' | 'configuration'
+const VALID_ACTIVE_TABS: LogsSceneActiveTab[] = ['viewer', 'archive', 'services', 'alerts', 'sql', 'configuration']
 export const DEFAULT_ACTIVE_TAB: LogsSceneActiveTab = 'viewer'
 
 const resolveActiveTabFromParams = (params: Params): LogsSceneActiveTab | null => {
