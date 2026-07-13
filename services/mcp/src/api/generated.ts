@@ -61031,6 +61031,10 @@ export namespace Schemas {
     search?: string;
     };
 
+    export type EnvironmentsExternalDataSchemasCancelCreate400 = {
+      detail?: string;
+    };
+
     export type EnvironmentsExternalDataSchemasLogsRetrieveParams = {
     /**
      * Only return entries after this ISO 8601 timestamp.
@@ -68010,6 +68014,10 @@ export namespace Schemas {
      * A search term.
      */
     search?: string;
+    };
+
+    export type ExternalDataSchemasCancelCreate400 = {
+      detail?: string;
     };
 
     export type ExternalDataSchemasLogsRetrieveParams = {
