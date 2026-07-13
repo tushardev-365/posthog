@@ -191,12 +191,9 @@ class SignalReportSummary:
 def get_recent_reports(team_id: int, since: datetime, limit: int = 20) -> list[SignalReportSummary]:
     """Recent inbox-visible reports with authored content, newest first.
 
-    Scoped to reports backed by every signal source product *except* Pulse's own, so a consumer
-    that could also emit signals (Pulse) can never read its own output back as input. This
-    anti-amplification exclusion is defensive: Pulse doesn't emit today, but the filter also
-    covers any legacy pulse-sourced rows and keeps the layering a one-directional DAG. Hidden
-    statuses mirror the inbox list surface. Report content is LLM-authored, so this returns []
-    when the organization has not approved AI data processing — mirroring emit_signal's gate.
+    Covers every signal source product (scout, replay-vision, ...). Hidden statuses mirror the
+    inbox list surface. Report content is LLM-authored, so this returns [] when the organization
+    has not approved AI data processing — mirroring emit_signal's gate.
     """
     from products.signals.backend.temporal.signal_queries import (
         fetch_report_ids_for_source_products,  # noqa: PLC0415 — keeps the temporal stack off the facade import path
@@ -205,10 +202,7 @@ def get_recent_reports(team_id: int, since: datetime, limit: int = 20) -> list[S
     team = Team.objects.filter(id=team_id).select_related("organization").first()
     if team is None or not team.organization.is_ai_data_processing_approved:
         return []
-    brief_input_products = [
-        p.value for p in SignalSourceConfig.SourceProduct if p != SignalSourceConfig.SourceProduct.PULSE
-    ]
-    report_ids = fetch_report_ids_for_source_products(team, brief_input_products)
+    report_ids = fetch_report_ids_for_source_products(team, [p.value for p in SignalSourceConfig.SourceProduct])
     if not report_ids:
         return []
     reports = (
