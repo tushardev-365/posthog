@@ -147,13 +147,30 @@ class PeriodSerializer(serializers.Serializer):
         return attrs
 
 
+class BriefSectionCitationSerializer(serializers.Serializer):
+    type = serializers.CharField(help_text="Cited resource type, e.g. insight or dashboard.")
+    ref = serializers.CharField(help_text="Stable id of the cited resource within its type.")
+    label = serializers.CharField(help_text="Human-readable name of the cited resource, for display.")
+    url = serializers.CharField(
+        allow_blank=True, help_text="Deep link into the app, or empty when the resource has no navigable target."
+    )
+
+
+class BriefSectionSerializer(serializers.Serializer):
+    kind = serializers.CharField(help_text="Section kind, e.g. what_happened or what_to_build_next.")
+    title = serializers.CharField(help_text="Short section heading.")
+    markdown = serializers.CharField(help_text="Section body rendered as markdown.")
+    citations = BriefSectionCitationSerializer(many=True, help_text="PostHog resources this section cites as evidence.")
+    confidence = serializers.FloatField(help_text="Model confidence in this section, 0.0-1.0.")
+
+
 class ProductBriefSerializer(serializers.ModelSerializer):
     created_by = UserBasicSerializer(read_only=True, allow_null=True, help_text="User who requested the brief.")
     period = PeriodSerializer(read_only=True, help_text="The resolved-at-gather period spec the brief covers.")
-    sections = serializers.ListField(
-        child=serializers.DictField(),
+    sections = BriefSectionSerializer(
+        many=True,
         read_only=True,
-        help_text="Generated brief sections: kind, title, markdown, citations, confidence.",
+        help_text="Generated brief sections, most important first.",
     )
     sources_used = serializers.ListField(
         child=serializers.CharField(),
@@ -272,8 +289,7 @@ class ProductBriefViewSet(TeamAndOrgViewSetMixin, viewsets.ReadOnlyModelViewSet)
     @action(methods=["POST"], detail=False, url_path="generate")
     def generate(self, request: Request, **kwargs) -> Response:
         if not self.team.organization.is_ai_data_processing_approved:
-            # Cross-boundary contract: the frontend (pulseLogic AI_CONSENT_ERROR_CODE) matches this
-            # code to show the consent banner — rename both sides together.
+            # `code` is a cross-boundary contract with pulseLogic's AI_CONSENT_ERROR_CODE.
             raise ValidationError(
                 "AI data processing must be approved for this organization to generate briefs.",
                 code="ai_consent_required",

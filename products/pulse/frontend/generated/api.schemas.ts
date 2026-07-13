@@ -272,7 +272,29 @@ export interface PaginatedProductBriefListListApi {
     results: ProductBriefListApi[]
 }
 
-export type ProductBriefApiSectionsItem = { [key: string]: unknown }
+export interface BriefSectionCitationApi {
+    /** Cited resource type, e.g. insight or dashboard. */
+    type: string
+    /** Stable id of the cited resource within its type. */
+    ref: string
+    /** Human-readable name of the cited resource, for display. */
+    label: string
+    /** Deep link into the app, or empty when the resource has no navigable target. */
+    url: string
+}
+
+export interface BriefSectionApi {
+    /** Section kind, e.g. what_happened or what_to_build_next. */
+    kind: string
+    /** Short section heading. */
+    title: string
+    /** Section body rendered as markdown. */
+    markdown: string
+    /** PostHog resources this section cites as evidence. */
+    citations: BriefSectionCitationApi[]
+    /** Model confidence in this section, 0.0-1.0. */
+    confidence: number
+}
 
 export interface ProductBriefApi {
     readonly id: string
@@ -295,8 +317,8 @@ export interface ProductBriefApi {
     readonly trigger: ProductBriefTriggerEnumApi
     /** The resolved-at-gather period spec the brief covers. */
     readonly period: PeriodApi
-    /** Generated brief sections: kind, title, markdown, citations, confidence. */
-    readonly sections: readonly ProductBriefApiSectionsItem[]
+    /** Generated brief sections, most important first. */
+    readonly sections: readonly BriefSectionApi[]
     /** Names of the brief sources that contributed items. */
     readonly sources_used: readonly string[]
     /**

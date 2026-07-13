@@ -802,7 +802,8 @@ export const productConfiguration: Record<string, any> = {
     Pulse: {
         name: 'Pulse',
         projectBased: true,
-        description: 'Recurring product briefs: what happened, why it happened, and what to build next.',
+        description:
+            'Your always-on product manager: spots growth opportunities and shows how to move the numbers that matter.',
         iconType: 'activity',
     },
     ReplayVision: {
