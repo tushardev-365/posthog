@@ -30,6 +30,7 @@ class SignalSourceProduct(StrEnum):
     LOGS = "logs"
     HEALTH_CHECKS = "health_checks"
     REPLAY_VISION = "replay_vision"
+    PULSE = "pulse"
 
 
 class SignalSourceType(StrEnum):
@@ -71,6 +72,7 @@ SIGNAL_SOURCE_PRODUCT_LABELS: dict[SignalSourceProduct, str] = {
     SignalSourceProduct.HEALTH_CHECKS: "Health checks",
     SignalSourceProduct.ENDPOINTS: "Endpoints",
     SignalSourceProduct.REPLAY_VISION: "Replay Vision",
+    SignalSourceProduct.PULSE: "Pulse",
 }
 
 # The Django model's `source_product` choices, frozen-equivalent to the prior nested TextChoices so
