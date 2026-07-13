@@ -33,7 +33,8 @@ class SignalScoutRunSummary(BaseModel):
 # directly. The bootstrap, scratchpad, recency, business-knowledge, friction, and output sections are
 # identical for both; only the channel-specific sections differ. `build_run_prompt` composes the right
 # set from the constants below. Orthogonal to the channel fork, a *custom* (team-authored) scout on
-# either channel additionally gets the self-improvement section (`_SELF_IMPROVEMENT`).
+# either channel additionally gets the self-improvement section (`_self_improvement_section`), which
+# on the report channel also invites escalating strong suggestions as inbox reports about the scout.
 
 _BASE_PROMPT_INTRO = """You are a Signals scout agent for PostHog.
 
@@ -261,39 +262,42 @@ _GROUND_RULES = """# Ground rules
 # never sees this section: its skill body is a seeded row that upstream sync keeps current, and
 # nudging a team to edit it would mark the row diverged and cut it off from canonical updates.
 # Canonical-skill defects route upstream via the operational-friction section instead.
-_SELF_IMPROVEMENT = """# Suggest improvements to your own skill
+_SELF_IMPROVEMENT_HEAD = """# Suggest improvements to your own skill
 
 This scout's skill was authored by your team, and you are the only one who sees where its instructions steer a real run wrong. When THIS run produced concrete evidence that the skill misdirected you or wasted your budget — it pointed you at a tool, event, or surface that doesn't exist on this project, a default threshold or window you had to correct again, a recurring pitfall it never warns about — record the suggestion so the humans who own this scout can review it:
 
-- Write a scratchpad entry keyed `improve:<your-skill-name>:<topic>` — use your skill name from *Your run identity*, not a bare domain: scratchpad keys are shared team-wide, and a domain-only key would let two scouts overwrite each other's suggestions. Stable key, no dates — same rules as your other keys. In the content: the specific skill change you'd suggest, the evidence from this run, and a dated observed line. Hit the same issue on a later run? Rewrite the same key with a fresh dated line appended — recurrence across runs is the strongest review signal the owner gets.
-- The bar is a concrete failure or waste observed this run. Generic polish ("the wording could be clearer") is noise — don't write it.
+- Write a scratchpad entry keyed `improve:<your-skill-name>:<topic>` — use your skill name from *Your run identity*, not a bare domain: scratchpad keys are shared team-wide, and a domain-only key would let two scouts overwrite each other's suggestions. Stable key, no dates — same rules as your other keys. In the content: the specific skill change you'd suggest, the evidence from this run, and a dated observed line. Hit the same issue on a later run? Rewrite the same key with a fresh dated line appended — recurrence across runs is the strongest review signal the owner gets."""
+
+# The exact title prefix the escalation guidance below mandates for scout self-improvement reports.
+# The report-channel telemetry (`tools/report.py` `_report_classification_props`) classifies emitted /
+# edited reports off this prefix, so the prompt wording and the event classification share one
+# definition and can't silently drift apart.
+SELF_IMPROVEMENT_REPORT_TITLE_PREFIX = "Scout self-improvement:"
+
+# Report-channel custom scouts additionally escalate strong suggestions to the inbox with the report
+# tools they already hold. Two variants because an emit-only scout must never be pointed at
+# `edit_report` (the endpoint fails closed on the exact tool); a signal-channel custom scout gets
+# neither — it has no report tools at all, so the scratchpad stays its only self-improvement record.
+_SELF_IMPROVEMENT_ESCALATE_BOTH = f"""- **Recurring or material? File an inbox report too.** A scratchpad entry is only seen when the owner goes looking; a report is routed to them. When a suggestion re-confirms across runs (your `improve:` entry has accumulated several dated lines), or this run's failure was material (it wasted most of your budget, or steered you into emitting something wrong), surface it with the same report tools you use for findings. If the `improve:` entry already carries a `report_id`, `append_note` the fresh evidence onto that report with `signals-scout-edit-report`; otherwise author one with `signals-scout-emit-report` — title `{SELF_IMPROVEMENT_REPORT_TITLE_PREFIX} <your-skill-name> – <topic>`, the suggested skill change plus the evidence in the summary, `actionability` = `requires_human_input` (applying it is a skill edit by your team), `repository` = the `NO_REPO` sentinel (the fix is a skill edit, not code), `suggested_reviewers` = whoever owns this scout when you know — and stash the returned `report_id` in the `improve:` entry so later runs update that report instead of authoring a duplicate. It lands in the inbox like any other report; your team decides whether to apply it."""
+
+_SELF_IMPROVEMENT_ESCALATE_EMIT_ONLY = f"""- **Recurring or material? File an inbox report too.** A scratchpad entry is only seen when the owner goes looking; a report is routed to them. When a suggestion re-confirms across runs (your `improve:` entry has accumulated several dated lines), or this run's failure was material (it wasted most of your budget, or steered you into emitting something wrong), surface it with `signals-scout-emit-report` — title `{SELF_IMPROVEMENT_REPORT_TITLE_PREFIX} <your-skill-name> – <topic>`, the suggested skill change plus the evidence in the summary, `actionability` = `requires_human_input` (applying it is a skill edit by your team), `repository` = the `NO_REPO` sentinel (the fix is a skill edit, not code), `suggested_reviewers` = whoever owns this scout when you know. Stash the returned `report_id` in the `improve:` entry — this run can't edit reports, so once the entry carries a `report_id` the report exists: keep fresh evidence in the entry rather than authoring a duplicate. It lands in the inbox like any other report; your team decides whether to apply it."""
+
+_SELF_IMPROVEMENT_TAIL = """- The bar is a concrete failure or waste observed this run. Generic polish ("the wording could be clearer") is noise — don't write it.
 - Routing: a problem with the tools, the harness, or these shared instructions still goes to `agent-feedback` (it reaches the PostHog team, not your team). An `improve:` entry is only for changes to your own skill body — your team reviews it and decides whether to apply it.
 - You are also the janitor of your own suggestions — the scratchpad is writable only from a scout run, so the owner cannot clear an entry after acting on it. When a prior `improve:` entry of yours has been addressed (your skill body now reflects it, or the issue no longer reproduces), `forget` it or rewrite it as resolved so the pending list stays meaningful.
 - At most one new `improve:` entry per run, near close-out, and mention it in your summary. It is never a substitute for finishing the run."""
 
-# Appended to _SELF_IMPROVEMENT only for a custom scout that can author reports (`emit_report` in its
-# allowed_tools): the scratchpad ledger is pull-based (the owner sees it only when reviewing the scout),
-# so a suggestion that has proven itself gets an active escalation path into the inbox. The `{edit_clause}`
-# slot carries the edit-first dedupe instruction when the scout also has `edit_report` — never name a
-# tool the scout can't call.
-_SELF_IMPROVEMENT_ESCALATION_TEMPLATE = """- **Escalate a proven suggestion as an inbox report.** The scratchpad entry only reaches your team when someone reviews this scout, so when a suggestion has earned attention — its `improve:` entry has accumulated two or more dated observed lines across runs, or a single run demonstrably wasted a large share of its budget on the problem — surface it actively: author a report about it with `signals-scout-emit-report`{edit_clause}. Tag it `self-improvement` and set `metadata` to `{{"kind": "self-improvement"}}` so it is measurable as scout-ops output rather than a product finding; set `actionability` to `requires_human_input` (applying a skill edit is your team's decision, never autostart material) and pass the `NO_REPO` sentinel; route it with `suggested_reviewers` when you know who tends this scout. Keep the `improve:` scratchpad entry as the ledger either way — the report is the escalation, not a replacement. At most one such report per run, and never for a first observation."""
-
-_SELF_IMPROVEMENT_ESCALATION_EDIT_CLAUSE = (
-    " (or, if you already escalated this suggestion, `append_note` to that existing report via "
-    "`signals-scout-edit-report` instead of authoring a duplicate — keep its `report_id` in the "
-    "`improve:` entry)"
-)
-
 
 def _self_improvement_section(*, can_emit_report: bool, can_edit_report: bool) -> str:
-    """The self-improvement section for a custom scout, extended with the report-escalation bullet
-    when the scout can author reports. A signal-channel or edit-only custom scout keeps the
-    scratchpad-only base — escalation without `emit_report` would steer it at a tool that fails closed."""
-    if not can_emit_report:
-        return _SELF_IMPROVEMENT
-    edit_clause = _SELF_IMPROVEMENT_ESCALATION_EDIT_CLAUSE if can_edit_report else ""
-    escalation = _SELF_IMPROVEMENT_ESCALATION_TEMPLATE.format(edit_clause=edit_clause)
-    return f"{_SELF_IMPROVEMENT}\n{escalation}"
+    """Compose the self-improvement section for a custom scout, escalation guidance included only
+    when the scout holds the report tool(s) it names — same fail-closed discipline as the channel
+    sections. An edit-only scout gets no escalation: it can never author the first self-improvement
+    report, so the scratchpad entry remains its record."""
+    parts = [_SELF_IMPROVEMENT_HEAD]
+    if can_emit_report:
+        parts.append(_SELF_IMPROVEMENT_ESCALATE_BOTH if can_edit_report else _SELF_IMPROVEMENT_ESCALATE_EMIT_ONLY)
+    parts.append(_SELF_IMPROVEMENT_TAIL)
+    return "\n".join(parts)
 
 
 _OPERATIONAL_FRICTION = """# Report operational friction
@@ -404,8 +408,9 @@ def build_run_prompt(skill: LoadedSkill, *, run_id: str, team_id: int, started_a
 
     Orthogonal to the channel fork, the prompt also forks on the skill's *origin*: a custom
     (team-authored) scout gets the self-improvement section inviting evidence-backed `improve:`
-    scratchpad suggestions for its own skill body; a canonical scout doesn't, so the harness never
-    nudges a team into diverging a seeded row from upstream sync.
+    scratchpad suggestions for its own skill body — and, when it holds report tools, escalating
+    recurring or material suggestions as inbox reports about the scout itself; a canonical scout
+    gets neither, so the harness never nudges a team into diverging a seeded row from upstream sync.
 
     `run_id` is the UUID of the `SignalScoutRun` row the harness inserted before
     spawning the sandbox. The agent passes it back when it calls
@@ -442,13 +447,8 @@ def build_run_prompt(skill: LoadedSkill, *, run_id: str, team_id: int, started_a
         emit_tool = "signals-scout-emit-signal"
     if skill.origin == "custom":
         # Slot the self-improvement invitation between friction reporting and the output format
-        # (the last element of every tail). Custom scouts only — see the note on _SELF_IMPROVEMENT.
-        # A report-authoring custom scout additionally gets the escalation bullet (emit a report
-        # for a suggestion that keeps recurring), gated on the exact tools it can call.
-        self_improvement = _self_improvement_section(
-            can_emit_report=report_channel and can_emit_report,
-            can_edit_report=report_channel and can_edit_report,
-        )
+        # (the last element of every tail). Custom scouts only — see the note on _SELF_IMPROVEMENT_HEAD.
+        self_improvement = _self_improvement_section(can_emit_report=can_emit_report, can_edit_report=can_edit_report)
         sections = [*sections[:-1], self_improvement, sections[-1]]
     tail = _render_tail(sections, schema_json=schema_json)
     return f"""{intro}
@@ -458,6 +458,10 @@ def build_run_prompt(skill: LoadedSkill, *, run_id: str, team_id: int, started_a
 - **team_id**: `{team_id}` — implicit on every MCP call.
 - **skill**: `{skill.name}` (v{skill.version}) — your steering layer.
 - **started_at**: `{started_at_iso}` — when this run began (UTC). Informational; use current clock time for queries about "now".
+
+# How to call tools
+
+Every tool named in this prompt — the `signals-scout-*` harness tools and all PostHog MCP tools — is invoked through the `mcp__posthog__exec` interface as `call <tool_name> <json>`, not as a direct tool call. The bare names below (`skill-get`, `signals-scout-project-profile-get`, `{emit_tool}`, …) are how you *refer* to a tool; you reach one through `exec`. For any tool you haven't already used, discover and inspect it first on that same interface — `search <regex>` to find it, `info <tool_name>` to read its schema — then `call` it. Don't burn opening moves trying to invoke these names directly; they resolve only through `exec`.
 
 # First: read your skill
 
