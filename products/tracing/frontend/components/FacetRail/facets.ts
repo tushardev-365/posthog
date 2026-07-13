@@ -60,6 +60,8 @@ export interface FacetConfig {
     searchable?: boolean
     searchPlaceholder?: string
     emptyLabel?: string
+    /** Max pixel height before the value list virtualizes and scrolls. */
+    maxHeight?: number
 }
 
 interface SpanFacetFilter {
@@ -169,6 +171,7 @@ const SERVICE_FACET: FacetConfig = {
     searchable: true,
     searchPlaceholder: 'Search services…',
     emptyLabel: 'No services',
+    maxHeight: 300,
 }
 
 const STATUS_FACET: FacetConfig = {
@@ -192,6 +195,7 @@ function resourceAttributeFacet(key: string, slug: string, title: string, group:
         searchable: true,
         searchPlaceholder: `Search ${title.toLowerCase()}…`,
         emptyLabel: `No ${title.toLowerCase()} values`,
+        maxHeight: 300,
     }
 }
 
@@ -240,12 +244,15 @@ export function filterFacetsByName(facets: FacetConfig[], query: string): FacetC
  * Ensure every selected value of a dynamic facet renders even when absent from the fetched list —
  * a filter from a URL or saved view can reference a value with no matches in the current scope
  * (or one below the top-N cutoff), and without a visible row it can't be seen or toggled off.
- * Missing values are prepended with a zero count.
+ * Missing values are prepended with a zero count. An active type-ahead search still applies to
+ * injected rows, matching the server-side substring semantics of the fetched ones.
  */
-export function mergeSelectedIntoOptions(fetched: FacetOption[], selected: string[]): FacetOption[] {
+export function mergeSelectedIntoOptions(fetched: FacetOption[], selected: string[], search?: string): FacetOption[] {
+    const needle = (search ?? '').trim().toLowerCase()
     const fetchedValues = new Set(fetched.map((option) => option.value))
     const missing = selected
         .filter((value) => !fetchedValues.has(value))
+        .filter((value) => !needle || value.toLowerCase().includes(needle))
         .map((value) => ({ value, label: value, count: 0 }))
     return missing.length > 0 ? [...missing, ...fetched] : fetched
 }
