@@ -3750,6 +3750,7 @@ export const logsAttributesRetrieveQueryOffsetMin = 0
 
 export const logsAttributesRetrieveQuerySearchValuesDefault = false
 export const logsAttributesRetrieveQueryServiceNamesDefault = []
+export const logsAttributesRetrieveQueryUseArchiveDefault = false
 
 export const LogsAttributesRetrieveQueryParams = /* @__PURE__ */ zod.object({
     attribute_type: zod
@@ -3843,6 +3844,12 @@ export const LogsAttributesRetrieveQueryParams = /* @__PURE__ */ zod.object({
         .array(zod.string())
         .default(logsAttributesRetrieveQueryServiceNamesDefault)
         .describe('Filter attributes to those appearing in logs from these services.'),
+    useArchive: zod
+        .boolean()
+        .default(logsAttributesRetrieveQueryUseArchiveDefault)
+        .describe(
+            'When true, read attribute keys from the logs archive (cold storage) instead of the hot tables. Only honoured when the logs-archive-search feature flag is enabled; ignored otherwise. Defaults to false.'
+        ),
 })
 
 export const LogsCountCreateParams = /* @__PURE__ */ zod.object({
@@ -4052,6 +4059,8 @@ export const LogsFacetValuesCreateParams = /* @__PURE__ */ zod.object({
         ),
 })
 
+export const logsFacetValuesCreateBodyQueryOneUseArchiveDefault = false
+
 export const LogsFacetValuesCreateBody = /* @__PURE__ */ zod.object({
     query: zod
         .object({
@@ -4156,6 +4165,12 @@ export const LogsFacetValuesCreateBody = /* @__PURE__ */ zod.object({
                 )
                 .optional()
                 .describe('Property filters for the query.'),
+            useArchive: zod
+                .boolean()
+                .default(logsFacetValuesCreateBodyQueryOneUseArchiveDefault)
+                .describe(
+                    'When true, compute facet values from the logs archive (cold storage) instead of the hot tables. Only honoured when the logs-archive-search feature flag is enabled; ignored otherwise. Defaults to false.'
+                ),
         })
         .describe('The facet values query to execute.'),
 })
@@ -4264,6 +4279,7 @@ export const logsQueryCreateBodyQueryOneFilterGroupDefault = []
 export const logsQueryCreateBodyQueryOneLimitDefault = 100
 export const logsQueryCreateBodyQueryOneExcludeAttributesDefault = false
 export const logsQueryCreateBodyQueryOneCustomColumnsDefault = []
+export const logsQueryCreateBodyQueryOneUseArchiveDefault = false
 
 export const LogsQueryCreateBody = /* @__PURE__ */ zod.object({
     query: zod
@@ -4364,6 +4380,12 @@ export const LogsQueryCreateBody = /* @__PURE__ */ zod.object({
                 .default(logsQueryCreateBodyQueryOneCustomColumnsDefault)
                 .describe(
                     "Custom column expressions evaluated per log row. Each entry is either a source-prefixed shorthand (`attributes.<key>`, `resource_attributes.<key>`, `body.<json.path>`) or a scalar HogQL expression (`upper(level)`, `coalesce(attributes['a'], attributes['b'])`). Aggregations and subqueries are rejected. Values come back on each result row keyed by the aliases echoed in the response `columns` field."
+                ),
+            useArchive: zod
+                .boolean()
+                .default(logsQueryCreateBodyQueryOneUseArchiveDefault)
+                .describe(
+                    'When true, query the logs archive (Iceberg-backed cold storage) instead of the hot ClickHouse tables. Only honoured when the logs-archive-search feature flag is enabled; ignored otherwise. Archive queries are slower and have no live-tail. Defaults to false.'
                 ),
         })
         .describe('The logs query to execute.'),
@@ -4473,6 +4495,7 @@ export const LogsSparklineCreateParams = /* @__PURE__ */ zod.object({
 export const logsSparklineCreateBodyQueryOneSeverityLevelsDefault = []
 export const logsSparklineCreateBodyQueryOneServiceNamesDefault = []
 export const logsSparklineCreateBodyQueryOneFilterGroupDefault = []
+export const logsSparklineCreateBodyQueryOneUseArchiveDefault = false
 
 export const LogsSparklineCreateBody = /* @__PURE__ */ zod.object({
     query: zod
@@ -4562,6 +4585,12 @@ export const LogsSparklineCreateBody = /* @__PURE__ */ zod.object({
                 .describe(
                     'Break down sparkline by "severity" (default) or "service".\n\n* `severity` - severity\n* `service` - service'
                 ),
+            useArchive: zod
+                .boolean()
+                .default(logsSparklineCreateBodyQueryOneUseArchiveDefault)
+                .describe(
+                    'When true, compute the sparkline from the logs archive (cold storage) instead of the hot tables. Only honoured when the logs-archive-search feature flag is enabled; ignored otherwise. Defaults to false.'
+                ),
         })
         .describe('The sparkline query to execute.'),
 })
@@ -4576,6 +4605,7 @@ export const LogsValuesRetrieveParams = /* @__PURE__ */ zod.object({
 
 export const logsValuesRetrieveQueryFilterGroupDefault = []
 export const logsValuesRetrieveQueryServiceNamesDefault = []
+export const logsValuesRetrieveQueryUseArchiveDefault = false
 
 export const LogsValuesRetrieveQueryParams = /* @__PURE__ */ zod.object({
     attribute_type: zod
@@ -4652,5 +4682,11 @@ export const LogsValuesRetrieveQueryParams = /* @__PURE__ */ zod.object({
         .array(zod.string())
         .default(logsValuesRetrieveQueryServiceNamesDefault)
         .describe('Filter values to those appearing in logs from these services.'),
+    useArchive: zod
+        .boolean()
+        .default(logsValuesRetrieveQueryUseArchiveDefault)
+        .describe(
+            'When true, read attribute values from the logs archive (cold storage) instead of the hot tables. Only honoured when the logs-archive-search feature flag is enabled; ignored otherwise. Defaults to false.'
+        ),
     value: zod.string().min(1).optional().describe('Search filter for attribute values'),
 })
