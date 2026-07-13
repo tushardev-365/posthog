@@ -14690,6 +14690,7 @@ export namespace Schemas {
      * * `web` - web
      * * `api` - api
      * * `mcp` - mcp
+     * * `wizard` - wizard
      */
     export type CreatedViaEnum = typeof CreatedViaEnum[keyof typeof CreatedViaEnum];
 
@@ -14698,6 +14699,7 @@ export namespace Schemas {
       Web: 'web',
       Api: 'api',
       Mcp: 'mcp',
+      Wizard: 'wizard',
     } as const;
 
     /**
@@ -25084,11 +25086,12 @@ export namespace Schemas {
        * * `warehouse` - warehouse
        * * `direct` - direct */
       access_method?: AccessMethodEnum;
-      /** Where the request came from
+      /** Where the request came from: `web` for the in-app UI, `api` for direct API callers, `mcp` for agent/MCP tool calls, `wizard` for the setup wizard. Defaults to `api`.
        *
        * * `web` - web
        * * `api` - api
-       * * `mcp` - mcp */
+       * * `mcp` - mcp
+       * * `wizard` - wizard */
       created_via?: CreatedViaEnum;
       /** Whether a synced source should also be live-queryable via direct connection. Defaults to true; ignored for pure direct-query sources. */
       direct_query_enabled?: boolean;
@@ -25136,11 +25139,12 @@ export namespace Schemas {
       readonly created_at: string;
       /** @nullable */
       readonly created_by: string | null;
-      /** How this source was created. Defaults to `api` on create when omitted. `web` for the in-app UI, `api` for direct API callers, `mcp` for agent/MCP tool calls. Ignored on update.
+      /** How this source was created. Defaults to `api` on create when omitted. `web` for the in-app UI, `api` for direct API callers, `mcp` for agent/MCP tool calls, `wizard` for the setup wizard (derived server-side from the wizard's user agent). Ignored on update.
        *
        * * `web` - web
        * * `api` - api
-       * * `mcp` - mcp */
+       * * `mcp` - mcp
+       * * `wizard` - wizard */
       created_via?: CreatedViaEnum | null;
       readonly status: string;
       client_secret: string;
@@ -40708,11 +40712,12 @@ export namespace Schemas {
       readonly created_at?: string;
       /** @nullable */
       readonly created_by?: string | null;
-      /** How this source was created. Defaults to `api` on create when omitted. `web` for the in-app UI, `api` for direct API callers, `mcp` for agent/MCP tool calls. Ignored on update.
+      /** How this source was created. Defaults to `api` on create when omitted. `web` for the in-app UI, `api` for direct API callers, `mcp` for agent/MCP tool calls, `wizard` for the setup wizard (derived server-side from the wizard's user agent). Ignored on update.
        *
        * * `web` - web
        * * `api` - api
-       * * `mcp` - mcp */
+       * * `mcp` - mcp
+       * * `wizard` - wizard */
       created_via?: CreatedViaEnum | null;
       readonly status?: string;
       client_secret?: string;
