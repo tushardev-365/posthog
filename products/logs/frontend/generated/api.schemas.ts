@@ -1652,7 +1652,11 @@ export interface LogsViewColumnApi {
     name?: string
     /** Only meaningful for `type: custom`: a source-prefixed shorthand (`attributes.<key>`, `resource_attributes.<key>`, `body.<json.path>`) or a scalar HogQL expression, sent verbatim in the logs query's `customColumns`. */
     expression?: string
-    /** Column width in pixels. Omitted for the default width; ignored for the flex message column. */
+    /**
+     * Column width in pixels (1–2000). Omitted for the default width; ignored for the flex message column.
+     * @minimum 1
+     * @maximum 2000
+     */
     width?: number
 }
 
@@ -1669,7 +1673,7 @@ export interface LogsViewApi {
     /** Filter criteria — subset of LogsViewerFilters. May contain severityLevels, serviceNames, searchTerm, filterGroup, dateRange, and other keys. */
     filters?: LogsViewApiFilters
     /**
-     * Ordered column configuration for the logs table (LogsColumnConfig[]). Order is array index. Null means the view has no column preference and the client renders its default column set.
+     * Ordered column configuration for the logs table (LogsColumnConfig[]). Order is array index. Null means the view has no column preference and the client renders its default column set. Omitting the field on update leaves the saved configuration unchanged; send null to clear it.
      * @nullable
      */
     columns?: LogsViewColumnApi[] | null
@@ -1702,7 +1706,7 @@ export interface PatchedLogsViewApi {
     /** Filter criteria — subset of LogsViewerFilters. May contain severityLevels, serviceNames, searchTerm, filterGroup, dateRange, and other keys. */
     filters?: PatchedLogsViewApiFilters
     /**
-     * Ordered column configuration for the logs table (LogsColumnConfig[]). Order is array index. Null means the view has no column preference and the client renders its default column set.
+     * Ordered column configuration for the logs table (LogsColumnConfig[]). Order is array index. Null means the view has no column preference and the client renders its default column set. Omitting the field on update leaves the saved configuration unchanged; send null to clear it.
      * @nullable
      */
     columns?: LogsViewColumnApi[] | null
